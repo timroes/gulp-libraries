@@ -32,7 +32,7 @@ function parentPackage(name) {
 function addAllFilesFromMeta(moduleDir, meta) {
 	for (var type in meta) {
 		// Ignore special keys in metadata (that will be handled elsewhere)
-		if (type === 'modules') {
+		if (type === 'modules' || type === 'options') {
 			continue;
 		}
 
@@ -45,6 +45,10 @@ function addAllFilesFromMeta(moduleDir, meta) {
 function init(options) {
 	var options = options || {};
 	var configFile = options.config || 'libraries.json';
+
+	// TODO: Besides the configFile options it would be nice to have every
+	//       every option available either in the config file or passed to this method
+
 	var registryUrl = options.metadataRegistry || 'https://github.com/timroes/gulp-libraries-registry/';
 
 	var registry = new Registry(registryUrl);
@@ -60,9 +64,6 @@ function init(options) {
 	var packageScanner = new PackageScanner(config);
 
 	var dependencies = packageScanner.getOrderedDependencies();
-
-	// We got some information, now do something with it
-	console.log(dependencies);
 
 	var dependenciesPromises = dependencies.map(function(dep) {
 		return metaCache.get(dep.id)
@@ -98,13 +99,11 @@ function init(options) {
 			}
 		})
 
-		console.log("Has all dependency information");
 		configured.resolve();
 
 	})
-	.catch(function() {
-		console.log("Some dependency failed");
-		throw arguments[0];
+	.catch(function(reason) {
+		configured.reject(reason);
 	});
 
 }
@@ -118,55 +117,32 @@ function getFiles(type, opts, gulpOpts) {
 	if (opts.flatten === false) {
 		gulpOpts.base = directories.modules();
 	}
-	// TODO: if use flatte packages check that no files have the same name
+	// TODO: if use flatten packages check that no files have the same name
 
-	// Create a new file stream for the files of the specified type
+	// Create a new file stream that will be filled once the
+	// library finished configuration
 	var stream = through2.obj();
 
 	configured.promise.then(function() {
+		// Once the library finished configuration, we create a gulp.src stream
+		// for the requested type of resources and copy all its resources over to
+		// the already returned stream
 		gulp.src(files.get(type), gulpOpts)
 			.pipe(through2.obj(function(chunk, enc, callback) {
-				console.log(chunk);
 				stream.push(chunk, enc);
 				callback();
-			}))
-			.on('end', function() {
-				stream.done();
-			});
+			}, function() {
+				// End the original stream, if the gulp.src stream ends
+				stream.end();
+			}));
+	})
+	.catch(function(reason) {
+		console.error("gulp-libraries wasn't able to retrieve the metadata for all libraries:\n%s", reason);
+		// TODO: How to properly error a gulp/node stream? currently stream just ends
+		stream.end(); // TODO: replace!
 	});
 
 	return stream;
-	// stream.push('--remove--');
-	// stream.pipe(through2.obj(function(chunk, enc, callback) {
-
-	// 		console.log(chunk, enc);
-	// 		console.log("Inside empty stream?");
-	// 		this.push(chunk);
-	// 		callback();
-	// 	}));
-
-	// 	console.log(stream.push);
-	// return gulp.src("**/*.json", gulpOpts)
-	// 	.pipe(through2.obj(function(chunk, enc, c1) {
-
-	// 		// TODO: We can wait here! for whatsoever
-	// 		// TODO: Some magic: replace this stream by gulp.src(files.get(type), gulpOpts)
-	// 		// console.log("we have some files?");
-	// 		var self = this;
-
-
-	// 		configured.promise.then(function() {
-
-	// 			// self.push(chunk);
-	// 			c1();
-
-	// 			// gulp.src(files.get(type), gulpOpts).pipe(through2.obj(function (chunk, enc, c2) {
-	// 			// 	self.push(chunk);
-	// 			// 	c1();
-	// 			// 	c2();
-	// 			// }));
-	// 		});
-	// 	}));
 }
 
 module.exports = init;

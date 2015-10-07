@@ -1,9 +1,5 @@
 'use strict';
 
-var METADATADB_DIR = "./metadatadb";
-
-// TODO: rewrite to use a git repository
-
 var fs = require('q-io/fs'),
 	git = require('nodegit'),
 	path = require('path'),
@@ -11,6 +7,9 @@ var fs = require('q-io/fs'),
 	semver = require('semver'),
 	url = require('url'),
 	util = require('util');
+
+// TODO: Proper way to find npm packages root directory
+var METADATADB_DIR = path.join(__dirname, "..", "metadatadb");
 
 /**
  * Creates a new registry to look up metadata in.
@@ -22,42 +21,41 @@ var fs = require('q-io/fs'),
 function Registry(url) {
 	this.url = url;
 	this.update();
-	this.finishedDefer = q.defer();
+	this.finishedUpdate = q.defer();
 }
-
-Registry.prototype.waitForFinish = function() {
-	return this.finishedDefer.promise;
-};
 
 Registry.prototype.update = function() {
 	var self = this;
-	fs.exists(METADATADB_DIR)
-	.then(function(exists) {
-		console.log("Does metadatadb exist? ", exists);
-		if (!exists) {
-			console.log("Checkout out metadata db");
-			return git.Clone.clone(self.url, METADATADB_DIR);
-		}
-	})
-	.then(function() {
-		console.log("checked out something?");
-		return git.Repository.open(METADATADB_DIR);
-	})
-	.then(function(repo) {
-		// TODO: repo.pull
-	})
-	.catch(function(reason) {
-		console.error(util.format("Could not update metadata repository, due to error:\n%s", reason));
-	});
+	return fs.exists(METADATADB_DIR)
+		.then(function(exists) {
+			if (!exists) {
+				console.log("No metadata db exists yet, cloning from online.");
+				// TODO: We cannot clone with --depth=1 (not supported by libgit), find another solution
+				return git.Clone.clone(self.url, METADATADB_DIR);
+			} else {
+				return git.Repository.open(METADATADB_DIR)
+					.then(function(repo) {
+						// Thanks to nodegit not resolving with the repo after
+						// a fetch we need to nest here to have the repo still available
+						return repo.fetchAll()
+							.then(function() {
+								return repo.mergeBranches('master', 'origin/master');
+							});
+					});
+			}
+		})
+		.then(function() {
+			self.finishedUpdate.resolve();
+		})
+		.catch(function(reason) {
+			console.error("Could not update metadata repository, due to error:\n%s", reason);
+		});
 };
 
-Registry.prototype.loadMetadata = function(packageId, version) {
-
-	var versionsToCheck = wildcardVersions(version);
+function getMetadataFromLocalRegistry(packageId, versionsToCheck) {
 	var metadata;
-
 	for (var k in versionsToCheck) {
-		var metadataFile = path.join('..', METADATADB_DIR, packageId, versionsToCheck[k], 'metadata.json');
+		var metadataFile = path.join(METADATADB_DIR, packageId, versionsToCheck[k], 'metadata.json');
 		try {
 			metadata = require(metadataFile);
 			break;
@@ -65,11 +63,22 @@ Registry.prototype.loadMetadata = function(packageId, version) {
 			// Ignore missing metadata for version, we will try the next (more generic) version (e.g. 1.1.x or 1.x.x)
 		}
 	}
+	return metadata;
+}
+
+Registry.prototype.loadMetadata = function(packageId, version) {
+
+	var versionsToCheck = wildcardVersions(version);
+	var metadata = getMetadataFromLocalRegistry(packageId, versionsToCheck);
 
 	if(!metadata) {
-		// TODO: If really not found, perhaps wait for git pull to be finished and try again
-		return q.reject(util.format("Could not find metadata for '%s' in version '%s'.", packageId, version));
-		//TODO: print out explanation on how to request/add such metadata
+		// We couldn't get metadata in the checked out repository (if any at all)
+		// so wait for the update and see whether that solves our problem
+		return this.finishedUpdate.promise.then(function() {
+			var metadata = getMetadataFromLocalRegistry(packageId, versionsToCheck);
+			return metadata || q.reject(util.format("Could not find metadata for '%s' in version '%s'.", packageId, version));
+			//TODO: print out explanation on how to request/add such metadata
+		});
 	}
 
 	return q.when(metadata);
