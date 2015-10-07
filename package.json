@@ -1,0 +1,21 @@
+{
+  "name": "gulp-libraries",
+  "version": "0.1.0-SNAPSHOT",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tim Roes <mail@timroes.de>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bower": "^1.5.3",
+    "findup-sync": "^0.3.0",
+    "nodegit": "^0.5.0",
+    "q": "^1.4.1",
+    "q-io": "^1.13.1",
+    "resolve": "^1.1.6",
+    "semver": "^5.0.3",
+    "through2": "^2.0.0"
+  }
+}
