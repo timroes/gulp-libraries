@@ -1,4 +1,4 @@
-gulp-dependencies
+gulp-libraries
 =================
 
 **An easy way to deal with libraries.**
