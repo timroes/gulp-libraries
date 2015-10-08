@@ -81,6 +81,7 @@ An optional object to configure the library. The following options are available
   option to `file:/tmp/`. If you set this option, because you are missing metadata in the official
   repository: sending a pull request is highly appreciated (see
   [Metadata Repository Project](https://github.com/timroes/gulp-libraries-registry)).
+* `ignoreCyclicDependencies` TODO
 
 ### `gulp-libraries.files(types, opts, gulpOpts)`
 

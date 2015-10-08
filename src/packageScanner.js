@@ -45,7 +45,6 @@ PackageScanner.prototype.getOrderedDependencies = function() {
 		}
 	}
 
-
 	// If the user has specified a package order, sort using that order, otherwise
 	// use the default order (which is unspecified)
 	// TODO: this is now broken due to automaticaly sorting. see how to match both of these

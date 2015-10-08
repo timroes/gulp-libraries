@@ -81,7 +81,7 @@ function init(options) {
 	// Wait for metadata of all dependencies to be fetched
 	q.all(dependenciesPromises).then(function(depInfos) {
 
-		depInfos = packageSorter.sort(depInfos, ignoreCyclicDependencies);
+		depInfos = packageSorter.sort(depInfos, ignoreCyclicDependencies, config);
 
 		// Look into all dependencies metadata
 		depInfos.forEach(function(depInfo) {
