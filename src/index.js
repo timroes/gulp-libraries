@@ -8,7 +8,8 @@ var findup = require('findup-sync'),
 	through2 = require('through2');
 
 var directories = require('./directories'),
-	files = require('./fileLists');
+	files = require('./fileLists'),
+	packageSorter = require('./packageSorter');
 
 var Config = require('./config'),
 	MetadataCache = require('./metadataCache'),
@@ -50,6 +51,7 @@ function init(options) {
 	//       every option available either in the config file or passed to this method
 
 	var registryUrl = options.metadataRegistry || 'https://github.com/timroes/gulp-libraries-registry/';
+	var ignoreCyclicDependencies = options.ignoreCyclicDependencies || false;
 
 	var registry = new Registry(registryUrl);
 	var metaCache = new MetadataCache(registry);
@@ -78,6 +80,8 @@ function init(options) {
 
 	// Wait for metadata of all dependencies to be fetched
 	q.all(dependenciesPromises).then(function(depInfos) {
+
+		depInfos = packageSorter.sort(depInfos, ignoreCyclicDependencies);
 
 		// Look into all dependencies metadata
 		depInfos.forEach(function(depInfo) {
@@ -137,9 +141,9 @@ function getFiles(type, opts, gulpOpts) {
 			}));
 	})
 	.catch(function(reason) {
-		console.error("gulp-libraries wasn't able to retrieve the metadata for all libraries:\n%s", reason);
 		// TODO: How to properly error a gulp/node stream? currently stream just ends
-		stream.end(); // TODO: replace!
+		console.error("gulp-libraries wasn't able to retrieve the metadata for all libraries:\n%s", reason);
+		stream.emit('error', new Error());
 	});
 
 	return stream;

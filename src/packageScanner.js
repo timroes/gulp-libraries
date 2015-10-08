@@ -45,11 +45,10 @@ PackageScanner.prototype.getOrderedDependencies = function() {
 		}
 	}
 
-	// TODO: Sort the packages by some "after"/"before" information in the metainfo
-	// TODO: use bower dependencies as "after" tags
 
 	// If the user has specified a package order, sort using that order, otherwise
 	// use the default order (which is unspecified)
+	// TODO: this is now broken due to automaticaly sorting. see how to match both of these
 	var packageOrder = this.config.getPackageOrder();
 	var orderedPackages = packageOrder ? sortPackages(pkgs, packageOrder) : pkgs;
 

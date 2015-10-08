@@ -49,8 +49,9 @@ gulp.task('libsjs', function() {
 A library can export any kind of resources. The most common ones are `js` (JavaScript files),
 `css` (CSS files). (*TODO: Define a list somewhere*).
 
+TODO: Ordering of packages
 
-Metadata for your library <a name="metadata-library"></a>
+Metadata for your library
 -------------------------
 
 *TODO: How the metadata file has to look*
