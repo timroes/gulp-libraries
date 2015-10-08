@@ -9,11 +9,11 @@ var findup = require('findup-sync'),
 
 var directories = require('./directories'),
 	files = require('./fileLists'),
+	packageScanner = require('./packageScanner'),
 	packageSorter = require('./packageSorter');
 
 var Config = require('./config'),
 	MetadataCache = require('./metadataCache'),
-	PackageScanner = require('./packageScanner'),
 	Registry = require('./registry');
 
 var gulp, config, configured;
@@ -63,20 +63,18 @@ function init(options) {
 	}
 
 	config = new Config(directories.calling(configFile));
-	var packageScanner = new PackageScanner(config);
 
-	var dependencies = packageScanner.getOrderedDependencies();
-
-	var dependenciesPromises = dependencies.map(function(dep) {
-		return metaCache.get(dep.id)
-			.then(function(metadata) {
-				return {
-					id: dep.id,
-					dir: dep.dir,
-					metadata: metadata
-				};
-			});
-	});
+	var dependenciesPromises = packageScanner.getDependencies(config)
+		.map(function(id) {
+			return metaCache.get(id)
+				.then(function(metadata) {
+					return {
+						id: id,
+						dir: directories.modules(id),
+						metadata: metadata
+					};
+				});
+		});
 
 	// Wait for metadata of all dependencies to be fetched
 	q.all(dependenciesPromises).then(function(depInfos) {
