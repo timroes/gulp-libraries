@@ -8,7 +8,7 @@ var fs = require('q-io/fs'),
 	url = require('url'),
 	util = require('util');
 
-// TODO: Proper way to find npm packages root directory
+// TODO(#7): Proper way to find npm packages root directory
 var METADATADB_DIR = path.join(__dirname, "..", "metadatadb");
 
 /**

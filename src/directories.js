@@ -4,7 +4,7 @@ var bower = require('bower'),
 	path = require('path');
 
 function callingModule() {
-	// TODO: Need a proper way of finding the "real" calling module
+	// TODO(#7): Need a proper way of finding the "real" calling module
 	var mod = module.parent;
 	while (mod && !mod.id.match(/gulpfile\.js$/)) {
 		mod = mod.parent;
