@@ -19,7 +19,7 @@ var METADATADB_DIR = path.join(__dirname, "..", "metadatadb");
  * @param {string} url - the base url of the registry
  */
 function Registry(url) {
-	this.url = url;
+	this.url = url || 'https://github.com/timroes/libraries-metadata-registry.git';
 	this.update();
 	this.finishedUpdate = q.defer();
 }
@@ -55,7 +55,7 @@ Registry.prototype.update = function() {
 function getMetadataFromLocalRegistry(packageId, versionsToCheck) {
 	var metadata;
 	for (var k in versionsToCheck) {
-		var metadataFile = path.join(METADATADB_DIR, packageId, versionsToCheck[k], 'metadata.json');
+		var metadataFile = path.join(METADATADB_DIR, 'data', packageId, versionsToCheck[k], 'metadata.json');
 		try {
 			metadata = require(metadataFile);
 			break;

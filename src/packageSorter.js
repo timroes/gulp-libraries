@@ -1,12 +1,13 @@
 'use strict';
 
-var helpers = require('./helpers'),
+var config = require('./config'),
+	helpers = require('./helpers'),
 	util = require('util');
 
 /**
  * @param {string[]} packages - a list of all package names handled by this library
  */
-var normalizeInfos = function(packageInfos, packages, config) {
+var normalizeInfos = function(packageInfos, packages) {
 
 	var isHandled = function(pkg) {
 		return packages.indexOf(pkg) > -1;
@@ -71,20 +72,20 @@ var findNextPackages = function(packageList, packageInfos) {
 	return next;
 };
 
-module.exports.sort = function(packageInfos, ignoreCyclicDependencies, config) {
+module.exports.sort = function(packageInfos) {
 
 	var unsorted = packageInfos.map(function(info) {
 		return info.id;
 	});
 
-	packageInfos = normalizeInfos(packageInfos, unsorted, config);
+	packageInfos = normalizeInfos(packageInfos, unsorted);
 
 	var sorted = [];
 
 	do {
 		var nextSort = findNextPackages(unsorted, packageInfos);
 		if (!nextSort.length) {
-			if (ignoreCyclicDependencies) {
+			if (config.get('ignoreCyclicDependencies', false)) {
 				// If user switched ignoring cyclic dependencies on just log a warning
 				// and add the unsorted dependencies as-is to the sorted list.
 				console.warn("Cyclic dependencies between %s", unsorted);

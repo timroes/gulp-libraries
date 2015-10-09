@@ -1,41 +1,43 @@
 'use strict';
 
-var fs = require('fs'),
+var directories = require('./directories'),
+	fs = require('fs'),
 	util = require('util');
 
-function Config(configFile) {
+var config, userOptions;
+
+/**
+ * Initialize the configuration. You can either pass a filename or the default
+ * filename "libraries.json" will be used. Must be called before you can use
+ * the configuration.
+ *
+ * @param {string} options - the filename relative to the caller module's root directory
+ */
+module.exports = function(options) {
+	userOptions = options || {};
+	var configFile = userOptions.configPath || 'libraries.json';
 	try {
-		this.config = require(configFile);
+		config = require(directories.calling(configFile));
 	} catch(e) {
-		// If the config file does not exist, that is fine too
-		this.config = {};
+		config = {};
 	}
 
-	this.config.options = this.config.options || {};
-}
-
-/**
- * Returns whether the package with the specific id is excluded.
- * These packages shouldn't be handled by the library.
- *
- * @param {string} id - the package id as used in bower
- */
-Config.prototype.isExcluded = function(id) {
-	return Array.isArray(this.config.exclude) && this.config.exclude.indexOf(id) > -1;
+	config.options = config.options || {};
 };
 
 /**
- * Returns the configured package order.
- * This is an array of package names. The plugin will place the defined
- * libraries in the specified order to the beginning of the file list.
- * All other dependencies will be put to the end of the file stream.
- * Dependencies in the config, that do not exist will be ignored.
+ * Returns the requested key from the configuration or the spcified
+ * default value if the key does not exist in the configuration.
  *
- * @return {string[]} an array of package names
+ * @param {string} key - a key to lookup
+ * @param {any} defaultValue - the default value to fallback to
+ * @return the configuration value or the fallback value
  */
-Config.prototype.getPackageOrder = function() {
-	return this.config.order || [];
+function get(key, defaultValue) {
+	return userOptions.hasOwnProperty(key) ? userOptions[key]
+			: (config.hasOwnProperty(key) ? config[key] : defaultValue);
 };
+module.exports.get = get;
 
 /**
  * Returns the options set for a specific package in the configuration.
@@ -49,13 +51,10 @@ Config.prototype.getPackageOrder = function() {
  * @param {?string} id - the package id or nothing to get all package options
  * @return {!object} the options for these packages or an empty object
  */
-Config.prototype.packageOptions = function(id) {
+module.exports.packageOptions = function(id) {
 	if (id) {
-		return this.config.options[id] || {};
+		return get('options', {})[id] || {};
 	} else {
-		return this.config.options;
+		return get('options', {});
 	}
 };
-
-
-module.exports = Config;

@@ -7,16 +7,16 @@ var findup = require('findup-sync'),
 	resolve = require('resolve'),
 	through2 = require('through2');
 
-var directories = require('./directories'),
+var config = require('./config'),
+	directories = require('./directories'),
 	files = require('./fileLists'),
 	packageScanner = require('./packageScanner'),
 	packageSorter = require('./packageSorter');
 
-var Config = require('./config'),
-	MetadataCache = require('./metadataCache'),
+var MetadataCache = require('./metadataCache'),
 	Registry = require('./registry');
 
-var gulp, config, configured;
+var gulp, configured;
 
 var configured = q.defer();
 
@@ -44,17 +44,7 @@ function addAllFilesFromMeta(moduleDir, meta) {
 }
 
 function init(options) {
-	var options = options || {};
-	var configFile = options.config || 'libraries.json';
-
-	// TODO: Besides the configFile options it would be nice to have every
-	//       every option available either in the config file or passed to this method
-
-	var registryUrl = options.metadataRegistry || 'https://github.com/timroes/gulp-libraries-registry/';
-	var ignoreCyclicDependencies = options.ignoreCyclicDependencies || false;
-
-	var registry = new Registry(registryUrl);
-	var metaCache = new MetadataCache(registry);
+	config(options);
 
 	gulp = parentPackage('gulp');
 	if(!gulp) {
@@ -62,9 +52,10 @@ function init(options) {
 		return;
 	}
 
-	config = new Config(directories.calling(configFile));
+	var registry = new Registry();
+	var metaCache = new MetadataCache(registry);
 
-	var dependenciesPromises = packageScanner.getDependencies(config)
+	var dependenciesPromises = packageScanner.getDependencies()
 		.map(function(id) {
 			return metaCache.get(id)
 				.then(function(metadata) {
@@ -79,7 +70,7 @@ function init(options) {
 	// Wait for metadata of all dependencies to be fetched
 	q.all(dependenciesPromises).then(function(depInfos) {
 
-		depInfos = packageSorter.sort(depInfos, ignoreCyclicDependencies, config);
+		depInfos = packageSorter.sort(depInfos);
 
 		// Look into all dependencies metadata
 		depInfos.forEach(function(depInfo) {
